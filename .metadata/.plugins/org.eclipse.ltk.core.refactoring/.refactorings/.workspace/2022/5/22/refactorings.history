@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete resource &apos;AX_SSP/AX_SSP.ino&apos;" deleteContents="false" description="Delete resource &apos;AX_SSP/AX_SSP.ino&apos;" element1="/AX_SSP/AX_SSP.ino" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1653421825866"/>
+</session>
