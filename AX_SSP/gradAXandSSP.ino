@@ -1,9 +1,22 @@
 #include "Arduino.h"
-#include "ssp.h"
 #include <stdlib.h>
 #include <stdio.h>
 
+/* settings */
+
+#define AX_DEBUG
+#define SSP_DEBUG
+
+#define AX_NRF // note en kan feh moshkela bt5ly el run bty2 awy lma knt bn3ml comment lel line dh
+
+/* note: do not un-comment both at the same time */
+#define AX_WRITE_FRAME_TO_LABVIEW // use this line to write frame on serial (readable for LabVIEW)
+//#define AX_WRITE_FRAME_TO_HERCULES // use this line to write frame on serial (readable for Hercules)
+
+/* settings */
+
 #include "ax25.h"
+#include "ssp.h"
 //ay 7aga
 /* keep this line when in Arduino is in RX mode, otherwise, comment it out. */
 //#define RX_M
@@ -163,16 +176,23 @@ void printSerialTXBufferToSerial() {
 	if (flag_SerialTXBuffer == FULL) {
 
 		radio.stopListening();
+		Serial.print("\nEnter Loop\n");
 		for (int i = 0; i < AX25_FRAME_MAX_SIZE; ++i) {
-
-			//radio.write(&SerialTXBuffer[i], sizeof(uint8)); /* writes Serial RX Buffer to nRF 1 byte at a time */
-
+#ifdef AX_NRF
+			radio.write(&SerialTXBuffer[i], sizeof(uint8)); /* writes Serial RX Buffer to nRF 1 byte at a time */
+#endif
 			// Note: the serial.write and print lines below are deprecated after using nRF Module
+#ifdef AX_WRITE_FRAME_TO_LABVIEW
+			Serial.write(SerialTXBuffer[i]); // used to write serially to LabVIEW
 
-			Serial.write(SerialTXBuffer[i]); 		// used to write serially to LabVIEW
-			//Serial.print(SerialTXBuffer[i], HEX); // to display array as string in HEX format (mostly used for debugging)
+#else
+#ifdef AX_WRITE_FRAME_TO_HERCULES
+			Serial.print(SerialTXBuffer[i], HEX); // to display array as string in HEX format (mostly used for debugging)
+#endif
+#endif
 			//Serial.flush();
 		}
+		Serial.print("\nEnter Loop\n");
 		flag_SerialTXBuffer = EMPTY;
 		radio.startListening();
 	}
@@ -253,7 +273,9 @@ void readFrameFromSerial() {
 
 	if (radio.available() && flag_SerialRXBuffer == EMPTY) {
 
+#ifdef AX_DEBUG
 		Serial.print("\nreceived Frame from nrf\n");
+#endif
 
 		g_infoSize = SSP_FRAME_MAX_SIZE;
 
@@ -288,9 +310,9 @@ void readFrameFromSerial() {
 			Serial.flush();
 		}
 #ifdef DEBUG
-			for (int i = 0; i < 256; i++) {
-				Serial.print(SerialRXBuffer[i], HEX);
-			}
+		for (int i = 0; i < 256; i++) {
+			Serial.print(SerialRXBuffer[i], HEX);
+		}
 #endif
 	}
 #endif
@@ -306,7 +328,7 @@ void setup() {
 	//Set module as receiver
 	radio.startListening();
 
-	 radio.setPayloadSize(1);
+	radio.setPayloadSize(1);
 
 //  if (checkcontrol == EMPTY) {
 //    getdata(data, &data_length, &dataflag);
@@ -457,8 +479,8 @@ void loop() {
 			|| (flag_Control_to_SSP == EMPTY
 					&& flag_Deframing_to_Control == FULL)) {
 
-#ifdef DEBUG
-	//	Serial.print("\nManagement\n");
+#ifdef AX_DEBUG
+		Serial.print("\nManagement\n");
 #endif
 		AX25_Manager(&control);
 	}
@@ -466,8 +488,8 @@ void loop() {
 	/* Builds Frame after receiving fields */
 	if (flag_Control_to_Framing == FULL && flag_SerialTXBuffer == EMPTY) {
 
-#ifdef DEBUG
-	//	Serial.print("\nBuild Frame\n");
+#ifdef AX_DEBUG
+		Serial.print("\nBuild Frame\n");
 #endif
 		AX25_buildFrame(SerialTXBuffer, info, &frameSize, addr, control,
 				g_infoSize);
@@ -483,8 +505,8 @@ void loop() {
 	/* Calls the de-framing function */
 	if (flag_Deframing_to_Control == EMPTY && flag_SerialRXBuffer == FULL) {
 
-#ifdef DEBUG
-	//	Serial.print("\nDeframe\n");
+#ifdef AX_DEBUG
+		Serial.print("\nDeframe\n");
 #endif
 		AX25_deFrame(SerialRXBuffer, frameSize, g_infoSize);
 	}

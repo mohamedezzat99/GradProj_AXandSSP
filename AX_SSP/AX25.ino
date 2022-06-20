@@ -261,8 +261,8 @@ void AX25_Manager(uint8 *a_control) {
 	case idle:
 		/*----------------------- TX part -----------------------*/
 		if ((flag_SSP_to_Control == FULL && flag_Control_to_Framing == EMPTY)) {
-#ifdef DEBUG
-//			Serial.print("\nIdle tx part\n");
+#ifdef AX_DEBUG
+			Serial.print("\nIdle tx part\n");
 #endif
 			/*TODO: check from Dr. if we should do this copy or not */
 
@@ -282,7 +282,7 @@ void AX25_Manager(uint8 *a_control) {
 		/*----------------------- RX part -----------------------*/
 		if ((flag_Control_to_SSP == EMPTY && flag_Deframing_to_Control == FULL)) {
 
-#ifdef DEBUG
+#ifdef AX_DEBUG
 			Serial.print("\nIdle rx part\n");
 #endif
 
@@ -290,7 +290,10 @@ void AX25_Manager(uint8 *a_control) {
 			for (i = 0; i < ADDR_LEN; i++) {
 				if (g_received_address[i] != myAddress[i]) {
 					notMyAddress = SET; /* set the flag to show the address is not ours */
-					//   Serial.println("\n Address is NOT ours \n");
+#ifdef AX_DEBUG
+
+					Serial.println("\n Address is NOT ours \n");
+#endif
 					flag_Deframing_to_Control = EMPTY; /* clears Buffer in case address is not ours */
 					break; /* breaks as soon as it finds a difference in the address */
 				}
@@ -308,7 +311,7 @@ void AX25_Manager(uint8 *a_control) {
 				Received_NS = (received_control & 0x0E) >> 1;
 				PollFinal = (received_control & 0x10) >> 4;
 
-#ifdef DEBUG
+#ifdef AX_DEBUG
 				Serial.print("\n Received NS = ");
 				Serial.print(Received_NS);
 				Serial.print("\n VR = ");
@@ -350,11 +353,14 @@ void AX25_Manager(uint8 *a_control) {
 				}
 				flag_Deframing_to_Control = EMPTY;
 			}
+#ifdef AX_DEBUG
+
 			Serial.print("\n CHECK FLAGS\n");
 			Serial.print(notMyAddress);
 			Serial.print(flag_NS_VR);
 			Serial.print(flag_controltossp);
 			Serial.print("\n CHECK FLAGS\n");
+#endif
 
 			if (notMyAddress
 					!= SET&& flag_NS_VR == SET&& flag_controltossp==EMPTY) { /*continues if the address is ours and the number of frame is what is expected*/
@@ -380,7 +386,9 @@ void AX25_Manager(uint8 *a_control) {
 
 	case TX:
 		if (flag_Deframing_to_Control == FULL) {
-			//     Serial.print("\n TX State \n");
+#ifdef AX_DEBUG
+			Serial.print("\n TX State \n");
+#endif
 
 			received_control = g_control_recived[0];
 
@@ -388,7 +396,9 @@ void AX25_Manager(uint8 *a_control) {
 			if ((received_control & 0x01) == 0) {
 
 				/* type is I frame */
-				//  Serial.print("\nI frame\n");
+#ifdef AX_DEBUG
+				Serial.print("\nI frame\n");
+#endif
 				g_Received_NR = (received_control & 0xE0) >> 5;
 				Received_NS = (received_control & 0x0E) >> 1;
 				Received_PollFinal = (received_control & 0x10) >> 4; /* TODO: check if it should be Poll or PollFinal */
@@ -403,7 +413,9 @@ void AX25_Manager(uint8 *a_control) {
 			} else if ((received_control & 0x03) == 1) {
 
 				/* type is S frame */
-				//    Serial.print("\nS frame\n");
+#ifdef AX_DEBUG
+				Serial.print("\nS frame\n");
+#endif
 				g_Received_NR = (received_control & 0xE0) >> 5;
 				Received_PollFinal = (received_control & 0x10) >> 4;
 				Received_Sbits = (received_control & 0x0C) >> 2;
@@ -428,7 +440,7 @@ void AX25_Manager(uint8 *a_control) {
 					/* original line was @ line 154 */
 					/* moved this here so that a new frame is made only when an RR is received otherwise if we receive REJ we will send the same frame */
 					//  flag_SSP_to_Control = EMPTY;
-#ifdef DEBUG
+#ifdef AX_DEBUG
 					Serial.print("\n The Frame we sent was Accepted \n");
 #endif
 
@@ -441,8 +453,9 @@ void AX25_Manager(uint8 *a_control) {
 					flag_Status = REJECT;
 
 					if (rejCounter == 2) {
-						Serial.print(
-								"\n Reject Counter Reached 3 so frame is skipped \n");
+#ifdef AX_DEBUG
+						Serial.print("\n Reject Counter Reached 3 so frame is skipped \n");
+#endif
 						flag_Status = ACCEPT; /* this means that the frame sent was skipped but treat it as accepted*/
 						flag_SSP_to_Control = EMPTY;
 						incrementStateVar(&VS);
@@ -451,7 +464,7 @@ void AX25_Manager(uint8 *a_control) {
 					} else {
 						rejCounter++;
 
-#ifdef DEBUG
+#ifdef AX_DEBUG
 						Serial.print("\nThe Frame we sent was Rejected\n");
 						Serial.print("\n rejCounter: ");
 						Serial.print(rejCounter);
@@ -465,7 +478,9 @@ void AX25_Manager(uint8 *a_control) {
 			} else {
 
 				/* type is U frame */
-				//    Serial.print("\nU frame\n");
+#ifdef AX_DEBUG
+    Serial.print("\nU frame\n");
+#endif
 				Received_Mbits = (received_control & 0xEC) >> 2;
 				Received_PollFinal = (received_control & 0x10) >> 4;
 			}
@@ -493,7 +508,9 @@ void AX25_Manager(uint8 *a_control) {
 		break;
 
 	case RX:
-		//  Serial.print("\n RX State \n");
+#ifdef AX_DEBUG
+		Serial.print("\n RX State \n");
+#endif
 		flag_Deframing_to_Control = EMPTY; /* clears Buffer after copying data in it */
 
 		/* Generate Required Control Byte */
@@ -503,7 +520,7 @@ void AX25_Manager(uint8 *a_control) {
 
 		/* check on CRC flag (in de-frame function) if True make RR if False make REJ */
 		if (flag_RX_crc == SET && flag_NS_VR == SET) {
-#ifdef DEBUG
+#ifdef AX_DEBUG
 			Serial.print("\n Accept the received frame \n");
 #endif
 			//*a_control = AX25_getControl(S, RR, NS, g_Received_NR, pollfinal);
@@ -512,7 +529,7 @@ void AX25_Manager(uint8 *a_control) {
 			flag_NS_VR = CLEAR;
 		} else {
 
-#ifdef DEBUG
+#ifdef AX_DEBUG
 			Serial.print("\n Reject the received frame \n");
 #endif
 			*a_control = AX25_getControl(S, REJ, NS, NR, pollfinal);
@@ -599,7 +616,6 @@ void AX25_deFrame(uint8 *buffer, uint16 frameSize, uint8 infoSize) {
 	ptrz = (uint8*) &crc;
 	for (; i < AX25_FRAME_MAX_SIZE; i++) {
 		newbuffer[i] = buffer[i];
-		// Serial.print(newbuffer[i],HEX);
 	}
 
 	if (newbuffer[0] == 0x7E) {

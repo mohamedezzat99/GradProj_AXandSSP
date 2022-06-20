@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2022-05-24 21:50:30
+//This file has been generated on 2022-05-28 16:14:50
 
 #include "Arduino.h"
 #include <stdio.h>
@@ -12,10 +12,14 @@
 #include "Arduino.h"
 #include "AX25_CRC.h"
 #include "Arduino.h"
-#include "ssp.h"
 #include <stdlib.h>
 #include <stdio.h>
+#define AX_DEBUG
+#define SSP_DEBUG
+#define AX_NRF // note en kan feh moshkela bt5ly el run bty2 awy lma knt bn3ml comment lel line dh
+#define AX_WRITE_FRAME_TO_LABVIEW // use this line to write frame on serial (readable for LabVIEW)
 #include "ax25.h"
+#include "ssp.h"
 #define DEBUG
 #include <SPI.h>
 #include <nRF24L01.h>
