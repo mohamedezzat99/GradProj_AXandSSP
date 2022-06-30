@@ -1,6 +1,16 @@
 #include "ssp.h"
 #include "Arduino.h"
 #include "ax25.h"
+#if 0
+
+//check here since these varibales are not externeed nor declared.
+
+extern uint16 ax_rx_length;
+extern uint8 flag_controltossp;
+extern uint8 flag_next_frame;
+extern uint8 flag_SSP_to_Control;
+//extern uint16 ax_rx_data;
+#endif
 
 unsigned short compute_crc16(unsigned char *data_p, unsigned char length) {
 	unsigned char x;
@@ -27,7 +37,7 @@ unsigned short compute_crc16(unsigned char *data_p, unsigned char length) {
 }
 
 void getdata(uint8 *data, uint16 *data_length, uint8 *dataflag, uint8 ax_type,
-		uint8 ax_src, uint8 *Tx_App_type, uint8 *Tx_App_desti) {
+		uint8 ax_dest, uint8 *Tx_App_type, uint8 *Tx_App_desti) {
 	*dataflag = EMPTY;
 	uint8 i;
 
@@ -38,8 +48,8 @@ void getdata(uint8 *data, uint16 *data_length, uint8 *dataflag, uint8 ax_type,
 	//*deframe_ax_flag=EMPTY;
 	*data_length = ax_rx_length;
 	*Tx_App_type = ax_type;
-	*Tx_App_desti = ax_src;
-	Serial1.print(*Tx_App_type, HEX);
+	*Tx_App_desti = ax_dest;
+	//Serial1.print(*Tx_App_type, HEX);
 	*dataflag = FULL;
 }
 
@@ -64,8 +74,11 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 	// Serial1.print("control");
 	if (controlflag == idle) {
 		if (*dataflag == FULL && *txflag == EMPTY) {
+#ifdef SSP_DEBUG
 			Serial1.println("\n Sending  Data \n");
+			Serial1.println("\n Starting TX Mode \n");
 			Serial1.flush();
+#endif
 
 			controlflag = tx;
 			*Tx_Frm_srce = source1;
@@ -84,8 +97,12 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 		} else if (*deframeflag == FULL && *layerflag == EMPTY) {
 
 			if (*Rx_Frm_dest == source1 || *Rx_Frm_dest == source2) {
+
+#ifdef SSP_DEBUG
 				Serial1.print("\n Received Data \n");
+		Serial1.println("\n Starting RX Mode \n");
 				Serial1.flush();
+#endif
 				controlflag = rx;
 				*layerflag = FULL;
 				*deframeflag = EMPTY;
@@ -117,8 +134,12 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 		if (*deframeflag == FULL) {
 
 			if (*Rx_Frm_dest == source1 && *Rx_Frm_type == 0x02) {
+
+#ifdef SSP_DEBUG
+
 				Serial1.println("\n Respond with an ACK \n");
 				Serial1.flush();
+#endif
 				controlflag = idle;
 				*deframeflag = EMPTY;
 				*checkcontrol = EMPTY;
@@ -129,9 +150,11 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 			else if ((*Rx_Frm_dest == source1)
 					&& (*Rx_Frm_type == 0x03 || *Rx_Frm_type == 0x13
 							|| *Rx_Frm_type == 0x23)) {
+#ifdef SSP_DEBUG
 				Serial1.println("\n Response with NACK \n");
 				Serial1.println("\n Sending Data Again \n");
 				Serial1.flush();
+#endif
 				for (i = 0; i < data_length; i++) {
 					Tx_Frm_data[i] = Tx_App_data[i];
 				}
@@ -141,8 +164,11 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 				*checkcontrol = FULL;
 				counter++;
 				if (counter == 3) {
+
+#ifdef SSP_DEBUG
 					Serial1.println("\n NACK Counter= 3 \n");
 					Serial1.flush();
+#endif
 					controlflag = idle;
 					counter = 0;
 					*txflag = EMPTY;
@@ -161,8 +187,10 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 	else {
 			//Serial1.println("\nalooo EL OLA \n");
 			current_time=millis();
-			if((current_time-time_out)>3000){
-				Serial1.println("\nalooo \n");
+			if((current_time-time_out)>5000){
+#ifdef SSP_DEBUG
+				Serial1.println("\n SSP Timeout! \n");
+#endif
 					*deframeflag = EMPTY;
 						*checkcontrol = EMPTY;
 						controlflag = idle;
@@ -173,11 +201,14 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 									}
 	}
 	}else if (controlflag == rx) {
-		Serial1.println("\n dkhal hena rx \n");
+
+
 
 		if (crcflag == EMPTY) {
+#ifdef SSP_DEBUG
 			Serial1.println("\n Correct CRC \n");
 			Serial1.flush();
+#endif
 			*Tx_Frm_srce = *Rx_Frm_dest;
 			*tx_size = 0;
 
@@ -187,8 +218,11 @@ void control_layer(uint8 *Tx_App_data, uint16 data_length, uint8 *Tx_App_desti,
 			controlflag = idle;
 			//*layerflag = FULL;
 		} else if (crcflag == FULL) {
+
+#ifdef SSP_DEBUG
 			Serial1.println("\n Wrong CRC \n");
 			Serial1.flush();
+#endif
 			*Tx_Frm_srce = *Rx_Frm_dest;
 			*tx_size = 0;
 			*Tx_Frm_desti = *Rx_Frm_src;
@@ -298,8 +332,8 @@ void ssp_build_frame(uint8 *txframe, uint8 *data, uint8 desti, uint8 srce,
 	}
 
 	for (i = 0; i < countttt; i++) {
-		Serial1.print(txframe[i], HEX);
-		Serial1.flush();
+		Serial1.write(txframe[i]);
+		//Serial1.flush();
 	}
 
 	*txflag = EMPTY;
@@ -403,18 +437,18 @@ void ssp_deframing(uint8 *rxframe, uint8 *adddest, uint8 *addsrc, uint8 *type,
 }
 
 void ssp_ax_deframing(uint8 *Control_To_SSP, uint8 *ax_rx_data,
-		uint16 *ax_rx_length, uint8 *ax_type, uint8 *ax_src) {
+		uint16 *ax_rx_length, uint8 *ax_type, uint8 *ax_dest) {
 	uint16 i, j, d, size2, size = 1, crc, size3;
 	uint8 count = 0, k, y = 0, arr[dt], datta[information + 4];
-	uint8 ax_dest;
+	uint8 ax_src;
 	//static uint8 ax_type = 0;
 	//Serial1.print("\n  bshof \n");
 	//  for (j = 0; j < 235; j++) {
 	//  Serial1.print(Control_To_SSP[j],HEX);
 	// }
 
-	ax_dest = Control_To_SSP[dest];
-	*ax_src = Control_To_SSP[src];
+	*ax_dest = Control_To_SSP[dest];
+	ax_src = Control_To_SSP[src];
 	*ax_type = Control_To_SSP[typ];
 
 	for (j = 1; j < dt - 1; j++) {
@@ -444,8 +478,8 @@ void ssp_ax_deframing(uint8 *Control_To_SSP, uint8 *ax_rx_data,
 	size2 = size - 3;
 
 	if (Control_To_SSP[fend] == 0xc0 && crc == 0x00) {
-		ax_dest = Control_To_SSP[dest];
-		*ax_src = Control_To_SSP[src];
+		*ax_dest = Control_To_SSP[dest];
+		ax_src = Control_To_SSP[src];
 
 		for (i = 4; i < (size - 3); i++) {
 
@@ -494,6 +528,11 @@ void ssp_ax_deframing(uint8 *Control_To_SSP, uint8 *ax_rx_data,
 
 		for (i = 0; i < (*ax_rx_length); i++) {
 			ax_rx_data[i] = datta[i + 4];
+#ifdef SSP_DEBUG
+			Serial1.print("\n\n");
+			Serial1.print(ax_rx_data[i], HEX);
+#endif
+
 		}
 
 	}
@@ -507,7 +546,7 @@ void ax_ssp_framing(uint8 *ax_ssp_frame, uint8 *Rx_App_data, uint8 *desti,
 
 	uint16 p, k;
 	uint8 n;
-	Serial1.print("\n check gwa el function el gdeda\n\n");
+//	Serial1.print("\n check gwa el function el gdeda\n\n");
 
 	//for (n = 0; n < Rx_length; n++) {
 

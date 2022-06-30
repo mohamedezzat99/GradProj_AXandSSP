@@ -86,7 +86,7 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 		uint16 *data_length, uint8 *checkcontrol, uint8 *Tx_App_desti,
 		uint8 *Tx_App_type, uint8 *src_to_framing) {
 #ifdef SSP_DEBUG
-	Serial1.print("dkhl hena");
+//	Serial1.print("dkhl hena");
 #endif
 	uint8 i;
 	uint8 source1 = 0x05;
@@ -124,10 +124,16 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 	}
 
 	if (dest_to_framing == source1&& *dataflag==EMPTY&&*checkcontrol==EMPTY) {
+
+#ifdef SSP_DEBUG
 		Serial1.print("el type");
 		Serial1.print(type_to_framing, HEX);
+#endif
 		if (type_to_framing == 0x04) {
+
+#ifdef SSP_DEBUG
 			Serial1.print("\nGET\n");
+#endif
 			uint8 i;
 
 			for (i = 0; i < 5; i++) {
@@ -141,7 +147,11 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 			*layerflag = EMPTY;
 //flag_next_frame=FULL;
 		} else if (type_to_framing == 0x00) {
+
+
+#ifdef SSP_DEBUG
 			Serial1.print("\nPING\n");
+#endif
 			uint8 i;
 
 			for (i = 0; i < 5; i++) {
@@ -155,7 +165,10 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 			*layerflag = EMPTY;
 //flag_next_frame=FULL;
 		} else if (type_to_framing == 0x06) {
+
+#ifdef SSP_DEBUG
 			Serial1.print("\nREAD\n");
+#endif
 			uint8 i;
 
 			for (i = 0; i < 5; i++) {
@@ -169,7 +182,11 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 			*layerflag = EMPTY;
 //flag_next_frame=FULL;
 		} else if (type_to_framing == 0x07) {
+
+
+#ifdef SSP_DEBUG
 			Serial1.print("\nWRITE\n");
+#endif
 
 			uint8 i;
 
@@ -179,7 +196,10 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 			*dataflag = FULL;
 			*data_length = 5;
 			*Tx_App_type = type_to_framing;
+
+#ifdef SSP_DEBUG
 			Serial1.print(*Tx_App_type, HEX);
+#endif
 			*Tx_App_desti = *src_to_framing;
 			*checkcontrol = FULL;
 			*layerflag = EMPTY;
@@ -187,7 +207,10 @@ void fillBuffer(uint16 *tx_ax_length, uint8 *layerflag, uint8 dest_to_framing,
 		}
 
 		else {
+
+#ifdef SSP_DEBUG
 			Serial1.print("\n GWA el else\n");
+#endif
 
 			*dataflag = EMPTY;
 			*checkcontrol = EMPTY;
@@ -245,6 +268,7 @@ void AX25_Manager(uint8 *a_control) {
 	uint8 Address_Copy[ADDR_LEN];
 	uint8 myAddress[ADDR_LEN] = { 'O', 'N', '4', 'U', 'L', 'G', 0x60, 'O', 'U',
 			'F', 'T', 'I', '1', 0x61 };
+
 	uint8 notMyAddress = CLEAR;
 
 	//uint8 flag_Status = ACCEPT;
@@ -347,30 +371,29 @@ void AX25_Manager(uint8 *a_control) {
 				}
 
 				/* checks if the received frame has correct order and is of ACK type (RR or RNR) */
+
+
 				if ((g_Recieved_NR_1) == VS
 						&& (Received_Sbits == RR || Received_Sbits == RNR)) {
-					//incrementStateVar(&VR);  /*todo:check from dr */
+//					incrementStateVar(&VR);  /*todo:check from dr */
 				}
 				flag_Deframing_to_Control = EMPTY;
 			}
-#ifdef AX_DEBUG
 
-			Serial.print("\n CHECK FLAGS\n");
-			Serial.print(notMyAddress);
-			Serial.print(flag_NS_VR);
-			Serial.print(flag_controltossp);
-			Serial.print("\n CHECK FLAGS\n");
-#endif
 
 			if (notMyAddress
 					!= SET&& flag_NS_VR == SET&& flag_controltossp==EMPTY) { /*continues if the address is ours and the number of frame is what is expected*/
 				/* copy array to upper layer */
-				Serial1.print("\n gwa management layer ezzat\n");
-
+#ifdef SSP_DEBUG
+				Serial1.print("\n inside AX.25 Management Layer \n");
+#endif
 				// Serial1.print(ax_rx_length,HEX);
 				for (i = 0; i < SSP_FRAME_MAX_SIZE; i++) {
 					Control_To_SSP[i] = g_info_reciver[i];
-					//Serial1.print(Control_To_SSP[i], HEX);
+
+#ifdef SSP_DEBUG
+					Serial1.print(Control_To_SSP[i], HEX);
+#endif
 
 				}
 				if (flag_RxFrameType == I) {
@@ -446,7 +469,7 @@ void AX25_Manager(uint8 *a_control) {
 
 					/* make values of VS range from 0 --> 7 only */
 					incrementStateVar(&VS);
-
+					incrementStateVar(&VR); /*todo: modified check IMPT*/
 					state = idle;
 				} else {
 
@@ -459,6 +482,7 @@ void AX25_Manager(uint8 *a_control) {
 						flag_Status = ACCEPT; /* this means that the frame sent was skipped but treat it as accepted*/
 						flag_SSP_to_Control = EMPTY;
 						incrementStateVar(&VS);
+						incrementStateVar(&VR); /*todo: modified check IMPT*/
 						state = idle;
 						rejCounter = 0;
 					} else {
@@ -525,7 +549,18 @@ void AX25_Manager(uint8 *a_control) {
 #endif
 			//*a_control = AX25_getControl(S, RR, NS, g_Received_NR, pollfinal);
 			*a_control = AX25_getControl(S, RR, NS, NR, pollfinal);
+
+#ifdef AX_DEBUG
+			Serial.print("\n before inc VR \n");
+			Serial.print(VR);
+#endif
 			incrementStateVar(&VR); /*(TODO: check from DR.) increments VR if I-frame is accepted */
+
+#ifdef AX_DEBUG
+			Serial.print("\n after inc VR \n");
+			Serial.print(VR);
+#endif
+
 			flag_NS_VR = CLEAR;
 		} else {
 

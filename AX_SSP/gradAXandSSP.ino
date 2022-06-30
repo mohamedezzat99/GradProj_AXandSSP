@@ -4,8 +4,8 @@
 
 /* settings */
 
-#define AX_DEBUG
-#define SSP_DEBUG
+//#define AX_DEBUG
+//#define SSP_DEBUG
 
 #define AX_NRF // note en kan feh moshkela bt5ly el run bty2 awy lma knt bn3ml comment lel line dh
 
@@ -27,6 +27,8 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
+
+
 
 //create an RF24 object
 RF24 radio(9, 8);  // CE, CSN
@@ -75,7 +77,10 @@ void receive_frame_here() {
 			Serial1.readBytes(rxframe, 236);
 			serial_flush_buffer();
 			rxflag = FULL;
+
+#ifdef SSP_DEBUG
 			Serial1.println("\n Received frame\n");
+#endif
 			Serial1.flush();
 		}
 	}
@@ -176,7 +181,6 @@ void printSerialTXBufferToSerial() {
 	if (flag_SerialTXBuffer == FULL) {
 
 		radio.stopListening();
-		Serial.print("\nEnter Loop\n");
 		for (int i = 0; i < AX25_FRAME_MAX_SIZE; ++i) {
 #ifdef AX_NRF
 			radio.write(&SerialTXBuffer[i], sizeof(uint8)); /* writes Serial RX Buffer to nRF 1 byte at a time */
@@ -192,7 +196,6 @@ void printSerialTXBufferToSerial() {
 #endif
 			//Serial.flush();
 		}
-		Serial.print("\nEnter Loop\n");
 		flag_SerialTXBuffer = EMPTY;
 		radio.startListening();
 	}
@@ -309,7 +312,7 @@ void readFrameFromSerial() {
 			flag_SerialRXBuffer = FULL;
 			Serial.flush();
 		}
-#ifdef DEBUG
+#ifdef AX_DEBUG
 		for (int i = 0; i < 256; i++) {
 			Serial.print(SerialRXBuffer[i], HEX);
 		}
@@ -319,6 +322,7 @@ void readFrameFromSerial() {
 }
 
 void setup() {
+
 	Serial.begin(9600);
 	Serial1.begin(9600);
 	radio.begin();
@@ -344,12 +348,15 @@ void setup() {
 
 void loop() {
 
+	    // set the LED with the ledState of the variable:
+
+
 	static uint8 txflag = EMPTY;
 	uint8 i;
 	static uint8 crcflag = EMPTY;
 	uint8 desti;
 	uint8 srce;
-	uint8 ax_src;
+	uint8 ax_dest;
 	uint8 ax_type;
 	uint8 desti2;
 	static uint16 tx_size = 0;
@@ -385,7 +392,7 @@ void loop() {
 		//dataflag = EMPTY;
 
 		ssp_ax_deframing(Control_To_SSP, ax_rx_data, &ax_rx_length, &ax_type,
-				&ax_src);
+				&ax_dest);
 
 		//Serial1.print("\n size w dkhal hena \n");
 		//Serial1.print(ax_rx_length, HEX);
@@ -398,7 +405,7 @@ void loop() {
 		//	deframe_ax_flag=EMPTY;
 		//	data_length = ax_rx_length;
 		//	dataflag = FULL;
-		getdata(data, &data_length, &dataflag, ax_type, ax_src, &typee, &desti);
+		getdata(data, &data_length, &dataflag, ax_type, ax_dest, &typee, &desti);
 
 		checkcontrol = FULL;
 	}
@@ -439,7 +446,7 @@ void loop() {
 //	Serial1.print(flag_next_frame,HEX);
 	if (flag_next_frame == FULL && layerflag == FULL
 			&& flag_SSP_to_Control == EMPTY) {
-		Serial1.print("DKHAL EL FUNCTION ASASN ");
+	//	Serial1.print("DKHAL EL FUNCTION ASASN ");
 		ax_ssp_framing(ax_ssp_frame, layerdata, &dest_to_framing,
 				&src_to_framing, &type_to_framing, Rx_length, &tx_ax_length);
 		fillBuffer(&tx_ax_length, &layerflag, dest_to_framing, type_to_framing,
@@ -480,7 +487,7 @@ void loop() {
 					&& flag_Deframing_to_Control == FULL)) {
 
 #ifdef AX_DEBUG
-		Serial.print("\nManagement\n");
+		Serial.print("\n AX.25 Management\n");
 #endif
 		AX25_Manager(&control);
 	}
@@ -489,7 +496,7 @@ void loop() {
 	if (flag_Control_to_Framing == FULL && flag_SerialTXBuffer == EMPTY) {
 
 #ifdef AX_DEBUG
-		Serial.print("\nBuild Frame\n");
+		Serial.print("\n AX.25 Build Frame\n");
 #endif
 		AX25_buildFrame(SerialTXBuffer, info, &frameSize, addr, control,
 				g_infoSize);
@@ -506,7 +513,7 @@ void loop() {
 	if (flag_Deframing_to_Control == EMPTY && flag_SerialRXBuffer == FULL) {
 
 #ifdef AX_DEBUG
-		Serial.print("\nDeframe\n");
+		Serial.print("\n AX.25 Deframe\n");
 #endif
 		AX25_deFrame(SerialRXBuffer, frameSize, g_infoSize);
 	}

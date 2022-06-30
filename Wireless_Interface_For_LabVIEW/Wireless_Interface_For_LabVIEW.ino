@@ -131,7 +131,7 @@ void loop() {
 		//Serial.print("1Rad");
 		readFrameFromNrf();
 #ifdef DEBUG_MEGA
-		Serial.print("nrf");
+		Serial.print("\n nrf \n");
 		//delay(100);
 		//for (int i= 0; i < 256; ++i) {
 		//	Serial.print(SerialRXBuffer[i],HEX);
